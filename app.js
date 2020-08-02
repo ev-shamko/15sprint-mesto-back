@@ -1,16 +1,18 @@
+/* **************** Импорт модулей ********************** */
+
 const express = require('express');
+const { errors } = require('celebrate'); // тестирует запросы в роут '/' и работает с ошибками от celebrate
+const cookieParser = require('cookie-parser'); // читает куки и разбирает полученную строку в объект
 const mongoose = require('mongoose'); // ODM пакет для взаимодействия с mongoDB
 const helmet = require('helmet'); // проставляет заголовки для безопасности: set HTTP response headers
 const bodyParser = require('body-parser'); // внимание! обязателен! И ниже его app.use -аем дважды
-const cookieParser = require('cookie-parser'); // читает куки и разбирает полученную строку в объект
-const { errors } = require('celebrate'); // тестирует запросы в роут '/' и работает с ошибками от celebrate
+const { requestLogger, errorLogger } = require('./middlewares/logger'); // импорт логгеров для запросов и ошибок должен быть последним в этом блоке
 
-const NotFoundError = require('./errors/err-not-found'); // здесь мы ожидаем только 404 или дефолтную 500 ошибку
+/* **************** Сервер ********************* */
 
 const { PORT = 3000 } = process.env;
 const app = express();
 app.use(helmet()); // рекомендуется использовать как можно раньше
-const { auth } = require('./middlewares/auth');
 
 // эти две строчки обязательные. Они собираюют из пакетов объект req.body
 // без них req.body = undefined
@@ -19,6 +21,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // без этого пакета сервер не сможет работать с куки и вся авторизация накроется ошибкой
 app.use(cookieParser());
+app.use(requestLogger); // логгер реквестов подключаем выше всех обработчиков роутов
 
 /* **************** Соединение с локальной БД ********************** */
 
@@ -35,10 +38,12 @@ mongoose.connect('mongodb://localhost:27017/mestodb', {
 const usersRouter = require('./routes/users');
 const cardsRouter = require('./routes/cards');
 const notokenAuth = require('./routes/userauth');
+const NotFoundError = require('./errors/err-not-found'); // ошибка 404 для плохого запроса
+const { auth } = require('./middlewares/auth');
 
-app.use('/', notokenAuth);
+app.use('/', notokenAuth); // создание нового пользователя и авторизация для получения токена
 
-// добавляем авторизационный миддлвэр
+// добавляем авторизационный миддлвэр для всех роутов ниже
 // всем роутам ниже этой строчки будет добавляться токен для авторизации в req.user._id
 app.use(auth);
 
@@ -54,12 +59,11 @@ app.use('/', (req, res, next) => {
 
 /*  ********* Обработчик ошибок ******* */
 
-// говорим серверу, чтобы вот этим он обрабатывал ошибки, создаваемые модулем celebrate
-// блин, я вообще не понимаю, как именно сюда приходят ошибки от celebrate, грустно :(
-app.use(errors());
+app.use(errorLogger); // подключаем логгер ошибок выше всех ошибок
+app.use(errors()); // обработчик ошибок celebrate, подключаем именно тут
 
-// eslint-disable-next-line no-unused-vars
-app.use((err, req, res, next) => {
+// этот код обрабатывает все "неучтённые" ошибки
+app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
   // в next передаём экземпляр ошибки, чтобы она попала в ответ:
   // если у ошибки нет статуса, выставляем 500 и считаем произошедшее ошибкой сервера
   const { statusCode = 500, message } = err;

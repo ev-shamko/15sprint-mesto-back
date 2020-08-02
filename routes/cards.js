@@ -21,7 +21,7 @@ cardsRouter.post(
   createCard,
 );
 
-// *** DELETE http://localhost:3000/cards/:cardId + куки
+// *** DELETE http://localhost:3000/cards/:cardId + токен
 // Удаление карточки по её id (сначала валидируем Joi)
 cardsRouter.delete(
   '/:cardId',
