@@ -1,11 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs'); // модуль хеширует пароли
 const validator = require('validator'); // этот модуль реализует валидацию. Можно переписать валидацию url аватара
-
-// регулярное выражение для валидации ссылки на аватар юзера.
-// Начинается на http:// или https://  --- затем адрес --- заканчивается на что-то типа /ava123.jpg (обязательно слеш, затем буквы и/или цифры, точка, формат из 3+ букв)
-// Подробнее рассмотреть регулярку можно на https://extendsclass.com/regex-tester.html
-const regExpImgUrl = /^(http:\/\/|https:\/\/)(www\.)?(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|\w+\d*-*\w*\d*-*\w*\d*(\.\w+|:\d{2,5}))((\.\w+)*|(:\d{2,5})?)(\/\w*\W*)*(\/((\w|\d)(\w|\d)*)\.\w{3,})$/;
+const regExpImgUrl = require('../middlewares/img-regexp');
 
 const userSchema = new mongoose.Schema({
   name: {
