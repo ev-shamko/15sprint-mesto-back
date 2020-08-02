@@ -1,10 +1,11 @@
 const jwt = require('jsonwebtoken');
 const jwsKey = require('../jwskey');
+const AuthorizationError = require('../errors/err-auth'); // подключаем конструктор ошибки 401
 
 // это миддлвара для авторизации пользователя (проверка JWT)
 module.exports.auth = (req, res, next) => {
   if (!req.cookies.jwt) { // если токена нет в заголовке запроса
-    return res.status(401).send({ message: 'Необходима авторизация. В заголовке запроса не пришёл токен.' });
+    return next(new AuthorizationError('Необходима авторизация. В заголовке запроса не пришёл токен.'));
   }
   const token = req.cookies.jwt;
 
@@ -14,7 +15,7 @@ module.exports.auth = (req, res, next) => {
     // это верификация токена: метод jwt.verify вернёт пейлоуд токена, если тот прошёл проверку
     payload = jwt.verify(token, jwsKey);
   } catch (err) {
-    return res.status(401).send({ message: 'Необходима авторизация' });
+    return next(new AuthorizationError('Необходима авторизация. Токен не прошёл проверку. Попробуйте залогиниться повторно'));
   }
 
   // верефицированный токен записываем в заголовок
