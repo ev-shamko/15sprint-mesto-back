@@ -41,6 +41,12 @@ const notokenAuth = require('./routes/userauth');
 const NotFoundError = require('./errors/err-not-found'); // ошибка 404 для плохого запроса
 const { auth } = require('./middlewares/auth');
 
+app.get('/crash-test', () => {
+  setTimeout(() => {
+    throw new Error('Сервер сейчас упадёт');
+  }, 0);
+});
+
 app.use('/', notokenAuth); // создание нового пользователя и авторизация для получения токена
 
 // добавляем авторизационный миддлвэр для всех роутов ниже
