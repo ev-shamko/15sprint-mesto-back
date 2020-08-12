@@ -3,12 +3,14 @@
 const bcrypt = require('bcryptjs'); // модуль для хеширования пароля
 const jwt = require('jsonwebtoken'); // создаёт JSON Web Token
 const User = require('../models/user'); // модель пишем с заглавной буквы
-const jwsKey = require('../jwskey');
+const jwtDevKey = require('../jwskey'); // этот ключ используется только когда NODE_ENV !== "production"
 
 // импорт собственных конструкторов ошибок 400, 401, 404
 const BadRequestError = require('../errors/err-bad-req');
 const AuthorizationError = require('../errors/err-auth');
 const NotFoundError = require('../errors/err-not-found');
+
+const { NODE_ENV, JWT_SECRET } = process.env; // на проде у нас JWT_SECRET, а не jwtDevKey
 
 /* ******************************************************* */
 
@@ -82,7 +84,11 @@ module.exports.login = (req, res, next) => {
     // если аутентификация прошла успешно, вернётся объект пользователя
     .then((user) => {
       // в пейлоуд токена записываем только _id
-      const token = jwt.sign({ _id: user._id }, jwsKey, { expiresIn: '7d' });
+      const token = jwt.sign(
+        { _id: user._id },
+        (NODE_ENV === 'production' ? JWT_SECRET : jwtDevKey), // если мы на проде и на месте .env файл, то будет использоваться ключ из JWT_SECRET
+        { expiresIn: '7d' },
+      );
 
       // отправляем токен браузеру. Браузер сохранит токен в куках
       console.log(`User ${user._id} is logging in`);

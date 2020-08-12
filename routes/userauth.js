@@ -4,7 +4,7 @@ const { celebrate, Joi } = require('celebrate');
 const { createUser, login } = require('../controllers/users');
 const regExpImgUrl = require('../middlewares/img-regexp');
 
-// *** POST http://localhost:3000/signu
+// *** POST .../signup
 // Залогиниться (сначала валидируем Joi)
 notokenAuth.post(
   '/signin',
@@ -17,7 +17,7 @@ notokenAuth.post(
   login,
 );
 
-// *** POST http://localhost:3000/signin
+// *** POST .../signin
 // Создать нового пользователя (сначала валидируем Joi)
 notokenAuth.post(
   '/signup',
@@ -38,7 +38,7 @@ module.exports = notokenAuth;
 /*
 Пример корректного body для регистрации:
 
-POST http://localhost:3000/signup
+POST .../signup
 {
     "name": "User WithPassword",
     "about": "Some userinfo",
@@ -49,7 +49,7 @@ POST http://localhost:3000/signup
 
 Пример запроса для залогинивания:
 
-POST http://localhost:3000/signin
+POST .../signin
 
 {
     "email": "testuser@yandex.ru",
