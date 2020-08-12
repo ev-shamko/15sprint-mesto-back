@@ -3,12 +3,23 @@
 
 const winston = require('winston');
 const expressWinston = require('express-winston');
+const fs = require('fs');
+const path = require('path');
+
+const logsDirectory = './logs';
+
+// если нет папки ./logs, то она будет создана
+if (fs.existsSync(logsDirectory)) {
+  // console.log('logs directory exists');
+} else {
+  fs.mkdirSync(logsDirectory);
+}
 
 // создадим логгер запросов
 const requestLogger = expressWinston.logger({
   // настраиваем, куда писать лог
   transports: [
-    new winston.transports.File({ filename: 'request.log' }),
+    new winston.transports.File({ filename: path.join(logsDirectory, '/request.log') }),
     // можно добавить транспорты для вывода логов в консоль или в сторонние сервисы аналитики
   ],
   format: winston.format.json(),
@@ -16,7 +27,9 @@ const requestLogger = expressWinston.logger({
 
 // логгер ошибок
 const errorLogger = expressWinston.errorLogger({
-  transports: [new winston.transports.File({ filename: 'error.log' })],
+  transports: [
+    new winston.transports.File({ filename: path.join(logsDirectory, 'error.log') }),
+  ],
   format: winston.format.json(),
 });
 
