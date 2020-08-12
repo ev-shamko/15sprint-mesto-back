@@ -63,7 +63,16 @@ module.exports.createUser = (req, res, next) => {
         // но если новый пользователь не был создан по юзер.схеме, то возвращаем ошибку
         .catch((err) => {
           if (err.name === 'ValidationError') {
-            throw new BadRequestError('При создании нового пользователя произошла ошибка валидации. Проверьте правильность отправляемых в req.body данных');
+            // здесь обоработаем только ошибку валидации: нарушение уникальности email
+            // из объекта ошибки валидации мы достаём err.errors.email и err.errors.email.kind
+            // объект ошибки валидации создан плагином mongoose-unique-validator (в ./models/users)
+            if (err.errors.email && err.errors.email.kind === 'unique') {
+              // console.log(err); // можно посмотреть объект ошибки от плагина
+              throw new BadRequestError('Ошибка! Пользователь с таким email уже есть, поэтому новый пользователь не был создан');
+            } else {
+              // обработка прочих ошибок валидации
+              throw new BadRequestError('При создании нового пользователя произошла ошибка валидации. Проверьте правильность отправляемых в req.body данных');
+            }
           } else {
             next(err);
           }
