@@ -3,12 +3,14 @@
 const bcrypt = require('bcryptjs'); // модуль для хеширования пароля
 const jwt = require('jsonwebtoken'); // создаёт JSON Web Token
 const User = require('../models/user'); // модель пишем с заглавной буквы
-const jwsKey = require('../jwskey');
+const jwtDevKey = require('../jwskey'); // этот ключ используется только когда NODE_ENV !== "production"
 
 // импорт собственных конструкторов ошибок 400, 401, 404
 const BadRequestError = require('../errors/err-bad-req');
 const AuthorizationError = require('../errors/err-auth');
 const NotFoundError = require('../errors/err-not-found');
+
+const { NODE_ENV, JWT_SECRET } = process.env; // на проде у нас JWT_SECRET, а не jwtDevKey
 
 /* ******************************************************* */
 
@@ -61,7 +63,16 @@ module.exports.createUser = (req, res, next) => {
         // но если новый пользователь не был создан по юзер.схеме, то возвращаем ошибку
         .catch((err) => {
           if (err.name === 'ValidationError') {
-            throw new BadRequestError('При создании нового пользователя произошла ошибка валидации. Проверьте правильность отправляемых в req.body данных');
+            // здесь обоработаем только 1 ошибку валидации: нарушение уникальности email
+            // из объекта ошибки валидации достаём свойства err.errors.email и err.errors.email.kind
+            // объект ошибки валидации создан плагином mongoose-unique-validator (в ./models/users)
+            if (err.errors.email && err.errors.email.kind === 'unique') {
+              // console.log(err); // можно посмотреть объект ошибки от плагина
+              throw new BadRequestError('Ошибка! Пользователь с таким email уже есть, поэтому новый пользователь не был создан');
+            } else {
+              // обработка прочих ошибок валидации
+              throw new BadRequestError('При создании нового пользователя произошла ошибка валидации. Проверьте правильность отправляемых в req.body данных');
+            }
           } else {
             next(err);
           }
@@ -82,7 +93,11 @@ module.exports.login = (req, res, next) => {
     // если аутентификация прошла успешно, вернётся объект пользователя
     .then((user) => {
       // в пейлоуд токена записываем только _id
-      const token = jwt.sign({ _id: user._id }, jwsKey, { expiresIn: '7d' });
+      const token = jwt.sign(
+        { _id: user._id },
+        (NODE_ENV === 'production' ? JWT_SECRET : jwtDevKey), // если мы на проде и на месте .env файл, то будет использоваться ключ из JWT_SECRET
+        { expiresIn: '7d' },
+      );
 
       // отправляем токен браузеру. Браузер сохранит токен в куках
       console.log(`User ${user._id} is logging in`);

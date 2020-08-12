@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const uniqueValidator = require('mongoose-unique-validator'); // будет сигналить, если нарушается unique: true у поля
 const bcrypt = require('bcryptjs'); // модуль хеширует пароли
 const validator = require('validator'); // этот модуль реализует валидацию. Можно переписать валидацию url аватара
 const regExpImgUrl = require('../middlewares/img-regexp');
@@ -65,5 +66,12 @@ userSchema.statics.findUserByCredentials = function (email, password) {
         });
     });
 };
+
+/*
+этот плагин выдаёт читабельную ошибку, если какое-то поле со свойством unique='true'
+не прошло валидацию. Посмотреть ошибку можно, сделав console.log(err) в ./controllers/users.js
+в методе login в том месте, где мы обрабатываем ошибку валидации
+*/
+userSchema.plugin(uniqueValidator);
 
 module.exports = mongoose.model('user', userSchema);

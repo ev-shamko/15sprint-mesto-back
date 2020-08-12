@@ -1,5 +1,6 @@
 /* **************** Импорт модулей ********************** */
 
+require('dotenv').config();
 const express = require('express');
 const { errors } = require('celebrate'); // тестирует запросы в роут '/' и работает с ошибками от celebrate
 const cookieParser = require('cookie-parser'); // читает куки и разбирает полученную строку в объект
@@ -25,12 +26,23 @@ app.use(requestLogger); // логгер реквестов подключаем 
 
 /* **************** Соединение с локальной БД ********************** */
 
+// кстати, ссылку на порт тоже можно в .env запихнуть
+// https://habr.com/ru/company/ruvds/blog/351254/
 mongoose.connect('mongodb://localhost:27017/mestodb', {
   useNewUrlParser: true,
   useCreateIndex: true,
   useFindAndModify: false,
   useUnifiedTopology: true, // убираем бесячее сообщение в консоли
 });
+
+/* для тестирования
+const { NODE_ENV, JWT_SECRET } = process.env;
+console.log(NODE_ENV);
+console.log('NODE_ENV = "production"', NODE_ENV === 'production');
+console.log(typeof (NODE_ENV));
+console.log(JWT_SECRET);
+console.log(typeof (JWT_SECRET));
+*/
 
 /* **************** РОУТЫ ********************** */
 
