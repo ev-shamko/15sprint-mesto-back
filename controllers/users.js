@@ -8,36 +8,27 @@ const jwtDevKey = require('../jwskey'); // этот ключ используе�
 // импорт собственных конструкторов ошибок 400, 401, 404
 const BadRequestError = require('../errors/err-bad-req');
 const AuthorizationError = require('../errors/err-auth');
-const NotFoundError = require('../errors/err-not-found');
+// const NotFoundError = require('../errors/err-not-found');
 
 const { NODE_ENV, JWT_SECRET } = process.env; // на проде у нас JWT_SECRET, а не jwtDevKey
 
 /* ******************************************************* */
 
-module.exports.getAllUsers = (req, res, next) => {
-  User.find({})
-    .then((users) => res.send({ data: users }))
-    .catch(next); // тут может отвалиться бд или другая серверная ошибка
-};
-
-module.exports.getUserById = (req, res, next) => {
-  User.findById(req.params.userId)
-    .then((userFound) => {
-      if (!userFound) {
-        throw new NotFoundError(`Пользователя с id${req.params.userId} нет в базе данных`);
-      }
-      return res.send(userFound); // если всё нормально нашлось, возвращаем юзердату
-    })
-    .catch(next); // стандартная ошибка 500; эквивалентно .catch(err => next(err));
+module.exports.getUserInfo = (req, res, next) => {
+  User.findById(req.user._id)
+    .then((user) => res.send({
+      email: user.email,
+      name: user.name,
+    }))
+    .catch(next);
 };
 
 module.exports.createUser = (req, res, next) => {
   const {
-    name, about, avatar, email, password,
+    email, name, password,
   } = req.body;
 
-  // теперь такая проверка обязательно нужна перед bcrypt.hash,
-  // потому что можно хешировать пустую строку :) И смех и грех.
+  // чтобы не хэшировать пустую строку вместо пароля
   if (!password || password.length < 8) {
     throw new BadRequestError('Ошибка регистрации: вы не ввели пароль, либо он короче 8 символов.');
   }
@@ -46,7 +37,7 @@ module.exports.createUser = (req, res, next) => {
     .then((hash) => {
       // cоздаём нового пользователя
       User.create({
-        name, about, avatar, email, password: hash,
+        email, name, password: hash,
       })
       // и после успешного создания возвращаем сообщение о том, что всё создалось
         .then((user) => {
@@ -55,12 +46,11 @@ module.exports.createUser = (req, res, next) => {
             data: {
               _id: user._id,
               email: user.email,
-              about: user.about,
-              avatar: user.avatar,
+              name: user.name,
             },
           });
         })
-        // но если новый пользователь не был создан по юзер.схеме, то возвращаем ошибку
+        // но если новый пользователь не был создан по юзер-схеме, то возвращаем ошибку
         .catch((err) => {
           if (err.name === 'ValidationError') {
             // здесь обоработаем только 1 ошибку валидации: нарушение уникальности email
@@ -86,16 +76,15 @@ module.exports.login = (req, res, next) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    throw new BadRequestError('Данные пользователя введены не полность. Необходимы email и пароль, чтобы войти на сервис');
+    throw new BadRequestError('Данные пользователя введены не полность. Необходимы и email и пароль, чтобы авторизироваться');
   }
 
   return User.findUserByCredentials(email, password)
-    // если аутентификация прошла успешно, вернётся объект пользователя
     .then((user) => {
-      // в пейлоуд токена записываем только _id
+      // в пейлоуд токена записываем только _id !
       const token = jwt.sign(
         { _id: user._id },
-        (NODE_ENV === 'production' ? JWT_SECRET : jwtDevKey), // если мы на проде и на месте .env файл, то будет использоваться ключ из JWT_SECRET
+        (NODE_ENV === 'production' ? JWT_SECRET : jwtDevKey), // если мы на проде (найден .env файл), то будет использоваться ключ из JWT_SECRET
         { expiresIn: '7d' },
       );
 
@@ -105,7 +94,7 @@ module.exports.login = (req, res, next) => {
         .cookie('jwt', token, {
           maxAge: 3600000 * 24 * 7,
           httpOnly: true, // по рекомендации из задания, чтобы куки было не прочесть через JS
-          sameSite: true, // отдаёт куки только родному домену, если браузер поддерживает фичу
+          sameSite: true, // отдаёт куки только родному домену, если браузер поддерживает эту фичу
         })
         .send({ message: 'Вы успешно залогинились' })
         .end();

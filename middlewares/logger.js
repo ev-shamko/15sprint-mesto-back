@@ -1,5 +1,4 @@
-// Модуль для создания логов
-// Будем логировать только запросы к серверу и происходящие на нём ошибки
+// Логироуются: 1) запросы к серверу; 2) происходящие на нём ошибки
 
 const winston = require('winston');
 const expressWinston = require('express-winston');
@@ -9,9 +8,8 @@ const path = require('path');
 const logsDirectory = './logs';
 
 // если нет папки ./logs, то она будет создана
-if (fs.existsSync(logsDirectory)) {
-  // console.log('logs directory exists');
-} else {
+if (!fs.existsSync(logsDirectory)) {
+  console.log('Haven`t found logs directory. Creating a new one');
   fs.mkdirSync(logsDirectory);
 }
 

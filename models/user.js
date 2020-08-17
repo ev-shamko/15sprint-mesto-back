@@ -1,31 +1,9 @@
 const mongoose = require('mongoose');
 const uniqueValidator = require('mongoose-unique-validator'); // будет сигналить, если нарушается unique: true у поля
 const bcrypt = require('bcryptjs'); // модуль хеширует пароли
-const validator = require('validator'); // этот модуль реализует валидацию. Можно переписать валидацию url аватара
-const regExpImgUrl = require('../middlewares/img-regexp');
+const validator = require('validator'); // модуль для валидации мыла в нашей схеме
 
 const userSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-    minlength: 2,
-    maxlength: 30,
-  },
-  about: {
-    type: String,
-    required: true,
-    minlength: 2,
-    maxlength: 30,
-  },
-  avatar: {
-    type: String,
-    required: true,
-    // кастомная валидация ссылки на аватар
-    validate: {
-      validator: (url) => regExpImgUrl.test(url), // Пришедший url проверяется регуляркой
-      message: (props) => `${props.value} - это некорректный url для аватара. Пример корректного url: https://my.site/ava123.jpg`,
-    },
-  },
   email: {
     type: String,
     unique: true,
@@ -35,18 +13,24 @@ const userSchema = new mongoose.Schema({
       message: (props) => `${props.value} некорректный email!`,
     },
   },
+  name: {
+    type: String,
+    required: true,
+    minlength: 2,
+    maxlength: 30,
+  },
   password: {
     type: String,
     required: true,
-    minlength: 8,
+    minlength: 8, // мб ещё ввести макс.ограничение?
     select: false, // по умолчанию хеш пароля юзера не вернётся из базы
     // но в случае аутентификации хеш пароля будет нужен
   },
 });
 
-// добавим метод findUserByCredentials схеме пользователя:
-// он делает проверку почты и пароля частью схемы пользователя, Карл!
-// принимает на вход почту и пароль - возвращает объект пользователя или ошибку
+// этот метод схемы пользователя проверяет почту и пароль.
+// если что-то не совпало, возвращает в ответе объект с сообщением об ошибке
+// если совпало, возвращает user, из которого мы потом слепим токен авторизации
 userSchema.statics.findUserByCredentials = function (email, password) {
   return this.findOne({ email }).select('+password') // this — это модель User
     .then((user) => {
@@ -68,7 +52,7 @@ userSchema.statics.findUserByCredentials = function (email, password) {
 };
 
 /*
-этот плагин выдаёт читабельную ошибку, если какое-то поле со свойством unique='true'
+этот плагин выдаёт читабельный объект ошибки, если какое-то поле схемы со свойством unique='true'
 не прошло валидацию. Посмотреть ошибку можно, сделав console.log(err) в ./controllers/users.js
 в методе login в том месте, где мы обрабатываем ошибку валидации
 */

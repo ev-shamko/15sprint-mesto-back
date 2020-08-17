@@ -1,7 +1,7 @@
 {
-  "name": "mesto-back",
-  "version": "1.0.0",
-  "description": "",
+  "name": "news-explorer-api",
+  "version": "0.0.1",
+  "description": "API for Diploma in Yandex Praktikum",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
